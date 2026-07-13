@@ -119,7 +119,6 @@ int create_file(){
 	CLEAR_L();
 
 	strcpy(pname, name);
-	strcat(pname, ".txt");
 
 	if((p = fd = open(pname, O_RDWR | O_CREAT | O_EXCL, 0644)) != -1){
 		printf("Success! Do you want to edit file?(1/0): ");
