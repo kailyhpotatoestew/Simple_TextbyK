@@ -181,6 +181,7 @@ void edit_file(int fd){
 			l++; 
 			l2 = 0;
 		}
+		l2 = 0;
 	}
 	
 	printf("%d", j);
