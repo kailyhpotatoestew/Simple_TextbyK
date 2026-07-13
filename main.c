@@ -35,15 +35,15 @@ char op[7];
             POS(2, 1);
             switch(r){
             case 4: 
-                disable_raw_mode();
+                r_move();
                 open_file();
                 getchar();
-                enable_raw_mode();
+                free_move();
                 break;
             case 5: 
-                disable_raw_mode();
+                r_move();
                 create_file();
-                enable_raw_mode();
+                free_move();
                 break;
             }
         }
