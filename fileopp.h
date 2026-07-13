@@ -169,15 +169,18 @@ void edit_file(int fd){
 	int i = 1;
 	int l = 0;
 	int j = 0;
+	int l2 = 0;
 	for(j = 0; j <= r2; j++){
 		for(;;){
 			if(rbuff[l] == '\n' || rbuff[l] == '\0'){
 				ebuff[j][l2] = '\0';
 				l++;
+				l2++;
 				break;
 			} 
 			ebuff[j][l2] = rbuff[l]; 
 			l++; 
+			l2 = 0;
 		}
 	}
 	
