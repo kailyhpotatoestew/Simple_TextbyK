@@ -119,6 +119,7 @@ int create_file(){
 	CLEAR_L();
 
 	strcpy(pname, name);
+	strcat(pname, ".txt");
 
 	if((p = fd = open(pname, O_RDWR | O_CREAT | O_EXCL, 0644)) != -1){
 		printf("Success! Do you want to edit file?(1/0): ");
@@ -169,18 +170,18 @@ void edit_file(int fd){
 	int l = 0;
 	int j = 0;
 	int l2 = 0;
-	lseek(fd, 0, SEEK_SET);
 	for(j = 0; j <= r2; j++){
 		for(;;){
 			if(rbuff[l] == '\n' || rbuff[l] == '\0'){
 				ebuff[j][l2] = '\0';
 				l++;
-				l2++;
+			
 				break;
 			} 
+
 			ebuff[j][l2] = rbuff[l]; 
 			l++; 
-			l2 = 0;
+		        l2++;
 		}
 		l2 = 0;
 	}
@@ -299,4 +300,3 @@ void rename_file(char name[]){
 	unlink(name);
 	CLEAR();
 }
-
