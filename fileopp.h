@@ -169,6 +169,7 @@ void edit_file(int fd){
 	int l = 0;
 	int j = 0;
 	int l2 = 0;
+	lseek(fd, 0, SEEK_SET);
 	for(j = 0; j <= r2; j++){
 		for(;;){
 			if(rbuff[l] == '\n' || rbuff[l] == '\0'){
