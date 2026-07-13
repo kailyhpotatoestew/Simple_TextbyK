@@ -297,3 +297,4 @@ void rename_file(char name[]){
 	unlink(name);
 	CLEAR();
 }
+
