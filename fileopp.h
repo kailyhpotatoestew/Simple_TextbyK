@@ -12,7 +12,8 @@
 #define RES() do { printf("\x1b[u"); } while(0);
 #define CLEAR() do { printf("\x1b[2J"); } while(0);
 #define CLEAR_L() do { printf("\x1b[1F;2K"); } while(0);
-
+#define HIDE_CURSOR() do {printf("\x1b[?25l"); } while(0);
+#define SHOW_CURSOR() do { printf("\x1b[?25h"); } while(0);
 #define WMAX 10000
 #define MAX 100
 #define RMAX 10000
@@ -33,7 +34,7 @@ void disable_raw_mode();
 void file_des(int row, int clm, char letter){
 	SAV();
 	POS(1, 1);
-	printf("\x1b[1;30;47mCTRL+N- Quit Position: %d|%d Letter: %c \x1b[39;49m", row, clm, letter);
+	printf("\x1b[1;30;47mCTRL+N - Quit | Position: %d|%d Letter: %c \x1b[39;49m", row, clm, letter);
 	RES();
 }
 //Exclusively for 1 character options
@@ -201,12 +202,14 @@ void edit_file(int fd){
 	while(1){
 		CLEAR();
 		POS(pos, 1);
+		HIDE_CURSOR();
 		for(int z = 0; z <= j; z++){
 			printf("%s", ebuff[z]); // Prints file contents
 			POS(pos + ex, 1);
 			ex++;
 		}
 		ex = 1;
+		if(row < 0) row = 0; 
 		int f_row = row + 2;
 		int f_clm = clm + 1;
 
@@ -214,16 +217,16 @@ void edit_file(int fd){
 
 		
 		POS(f_row, f_clm);
-
+		SHOW_CURSOR();
 		i_mode = getchar();
 
 		if(i_mode == 27){
 			getchar();
 			switch(i_mode = getchar()){ //Cursor movement
-			case 'A': row = (row + 2) >= 2 ? row - 1: row - 0; break;
+			case 'A': row = (row + 2) > 2 ? row - 1: row - 0; break;
            	case 'B': row = (row + 2) < j ? row + 1: row + 0; break; 
-           	case 'C': clm = (clm + 1) <= strlen(ebuff[row]) ? clm  + 1 : clm + 0; break;
-           	case 'D': clm = (clm + 1) >= 1 ? clm - 1: clm - 0; break;
+           	case 'C': clm = (clm + 1) < strlen(ebuff[row]) ? clm  + 1 : clm + 0; break;
+           	case 'D': clm = (clm + 1) > 1 ? clm - 1: clm - 0; break;
 			}
 			continue;
 		}
@@ -232,6 +235,7 @@ void edit_file(int fd){
 
 		if(i_mode == 127 || i_mode == '\b'){
 				if((clm - 1) == -1){
+					ebuff[row][clm] = ' ';
 					row--;
 					clm = strlen(ebuff[row]);
 				}
