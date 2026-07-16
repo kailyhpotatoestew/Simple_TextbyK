@@ -88,6 +88,7 @@ int open_file(){
 		return 0;
 	} 
 	else{
+		fdatasync(fd);
 
 		printf("\x1b[1;4;44mFile opened!\x1b[49m\nDo you want:\n1 - to edit\n2 - rename\n3 - dupe\n4 - clear file?\n\x1b[22;24m");
 		opt = cget();
@@ -264,6 +265,7 @@ void edit_file(int fd){
 
    		 write(fd, "\n", 1);
 	}
+	sync();
 }
 
 void clear_file(int fd){
