@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <errno.h> 
 #include <termios.h>
+#include <dirent.h> 
 
 #define CTRL_KEY(k) ((k) & 0x1f)
 #define POS(r, c)  do { printf("\x1b[%d;%dH",(r), (c)); } while(0)
@@ -31,6 +32,28 @@ void enable_raw_mode();
 void disable_raw_mode();
 
 
+void read_current_dir(){
+	DIR *current_dir = opendir("."); 
+
+	int rw = 2; 
+	int c = 50; 
+	POS(rw, c);
+	printf("\x1b[1;4m|Files in folder|");
+	rw++; 
+	struct dirent * read_dir; 
+	for(int i = 0;;i++){
+		POS(rw, c);
+		read_dir = readdir(current_dir);
+		if(read_dir == NULL){
+			break;
+		}
+		if(strstr(read_dir->d_name, ".txt") != NULL){
+			printf("|%s      ", read_dir->d_name); 
+			rw++;  
+		}
+	} 
+	printf("\x1b[0m");
+}
 void file_des(int row, int clm, char letter){
 	SAV();
 	POS(1, 1);
@@ -85,7 +108,8 @@ int open_file(){
 	} 
 	CLEAR();
 	if((fd = open(name, opt, 0644)) == -1){
-		printf("Error: %d, %s", errno, strerror(errno));
+		printf("\x1b[41;37mError: %d, %s\x1b[49;39m\nPress enter to continue", errno, strerror(errno));
+		opt = cget(); 
 		return 0;
 	} 
 	else{
@@ -123,29 +147,34 @@ int create_file(){
 	strcpy(pname, name);
 
 	if((p = fd = open(pname, O_RDWR | O_CREAT | O_EXCL, 0644)) != -1){
-		printf("Success! Do you want to edit file?(1/0): ");
+		CLEAR();
+		printf("\x1b[1;4;44mSucess!\x1b[49m\nDo you want:\n1 - to edit\n2 - rename\n3 - dupe\n4 - clear file?\n\x1b[22;24m");
 		switch(opt = cget()){
-		case '1': edit_file(fd); break;
-		case '2': return fd;
+			case '1': edit_file(fd); break; 
+			case '2': duplicate_file(fd); break; 
+			case '3': rename_file(pname); break;
+			case '4': clear_file(fd); break;
 		}
 	}
 
 	else{
-		printf("Error: %d, %s\nDo you want to overwrite file?(1/0): " , errno, strerror(errno)); 
+		printf("\x1b[41;37mError: %d, %s\x1b[49;39m\nDo you want to overwrite file?(1/0): " , errno, strerror(errno)); 
 		switch(opt = cget()){
 		case '1': 
 			if((p = fd = open(pname, O_RDWR | O_CREAT | O_TRUNC, 0644)) != -1){
 				fd = open(pname, O_RDWR | O_CREAT | O_TRUNC, 0644); 
-				printf("Success! Do you want to edit file, duplicate, or rename?(1/2/3)");
+				fdatasync(fd); 
+				CLEAR();
+				printf("\x1b[1;4;44mSuccess!\x1b[49m\nDo you want:\n1 - to edit\n2 - rename\n3 - dupe\n4 - clear file?\n\x1b[22;24m");
 				switch(opt = cget()){
 					case '1': edit_file(fd); break; 
 					case '2': duplicate_file(fd); break; 
 					case '3': rename_file(pname); break;
+					case '4': clear_file(fd); break;
 				}
-				;
 			} 
 			else{
-				printf("Error: %d, %s\nDo you want to open a file instead or try again?(1/0) or 2 if u want to quit: ",errno, strerror(errno));
+				printf("\x1b[41;37mError: %d, %s\x1b[49;39m\nDo you want to open a file instead or try again?(1/0) or 2 if u want to quit: ",errno, strerror(errno));
 				switch(opt = cget()){
 					case '1': open_file(); break;
 					case '0': create_file(); break;
@@ -212,7 +241,10 @@ void edit_file(int fd){
 		if(row < 0) row = 0; 
 		int f_row = row + 2;
 		int f_clm = clm + 1;
-
+		if(clm == 124){
+			row++; 
+			clm = 0;
+		}
 		file_des(f_row, f_clm, ebuff[row][clm]);
 
 		
@@ -225,7 +257,7 @@ void edit_file(int fd){
 			switch(i_mode = getchar()){ //Cursor movement
 			case 'A': row = (row + 2) > 2 ? row - 1: row - 0; break;
            	case 'B': row = (row + 2) < j ? row + 1: row + 0; break; 
-           	case 'C': clm = (clm + 1) < strlen(ebuff[row]) ? clm  + 1 : clm + 0; break;
+           	case 'C': clm = (clm + 1) < 123 ? clm  + 1 : clm + 0; break;
            	case 'D': clm = (clm + 1) > 1 ? clm - 1: clm - 0; break;
 			}
 			continue;
@@ -236,8 +268,11 @@ void edit_file(int fd){
 		if(i_mode == 127 || i_mode == '\b'){
 				if((clm - 1) == -1){
 					ebuff[row][clm] = ' ';
+					if(row == 0){
+						continue; 
+					}
 					row--;
-					clm = strlen(ebuff[row]);
+					clm = 123;
 				}
 				else {
 					ebuff[row][clm] = ' ';
@@ -305,3 +340,4 @@ void rename_file(char name[]){
 	unlink(name);
 	CLEAR();
 }
+
