@@ -3,8 +3,9 @@
 int r = 4;
 int cl = 4;
 
+
 void menu(){
-char op[7]; 
+	char op[7]; 
     printf("\x1b[0;1H");
     char text[3*MAX] = {
         "Press CTRL+N to quit \x1b[1;4;44m\n"
@@ -19,6 +20,7 @@ char op[7];
     free_move();
     while(1){
         CLEAR();
+        read_current_dir();
         POS(1, 1);
         printf("%s", text);
         POS(r, cl);
@@ -27,7 +29,7 @@ char op[7];
             getchar();
             c = getchar();
             switch(c){
-            case 'A': r = r >= 4 ? r - 1: r - 0; break;
+            case 'A': r = r > 4 ? r - 1: r - 0; break;
             case 'B': r = r <= 4? r + 1 : r + 0; break; 
             }
         }
