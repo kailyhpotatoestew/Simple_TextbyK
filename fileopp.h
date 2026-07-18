@@ -15,6 +15,7 @@
 #define CLEAR_L() do { printf("\x1b[1F;2K"); } while(0);
 #define HIDE_CURSOR() do {printf("\x1b[?25l"); } while(0);
 #define SHOW_CURSOR() do { printf("\x1b[?25h"); } while(0);
+
 #define WMAX 10000
 #define MAX 100
 #define RMAX 10000
@@ -32,7 +33,7 @@ void enable_raw_mode();
 void disable_raw_mode();
 
 
-void read_current_dir(){
+void read_current_dir(){ //prints list of all text files in the directory 
 	DIR *current_dir = opendir("."); 
 
 	int rw = 2; 
@@ -69,6 +70,7 @@ int cget(){
 
 void free_move() { //Allows for free cursor movement using arrow keys, and reads input without you needing to press enter
     struct termios raw;
+	tcflush(STDIN_FILENO, TCIFLUSH);
 
     tcgetattr(STDIN_FILENO, &raw);    
 
@@ -192,37 +194,36 @@ void edit_file(int fd){
 	int row = 0;
 	int clm = 0;
 	char rbuff[RMAX] = {};
-	char input_t[WMAX] = {};
-	char ebuff[1000][1000] = {};  
+	char ebuff[RMAX / 124][124] = {}; //We will copy the contents of rbuff to ebuff to make a 2d array we can move around 
 	int r2 = read(fd, rbuff, RMAX);
 	if(r2 == -1) printf("Error %d: %s", errno, strerror(errno)); 
-	int i = 1;
-	int l = 0;
-	int j = 0;
-	int l2 = 0;
-	for(j = 0; j <= r2; j++){
+	int l = 0; //checks total characters
+	int j = 0; //the row 
+	int l2 = 0; //tracks characters in row 
+	for(j = 0; l <= r2; j++){
 		for(;;){
-			if(rbuff[l] == '\n' || rbuff[l] == '\0'){
+			if(rbuff[l] == '\n' || rbuff[l] == '\0'){ //Goes until it reaces a blank line 
 				ebuff[j][l2] = '\0';
 				l++;
-			
 				break;
 			} 
+			if(l2 >= 123) { //The terminal only has 123 columns, so we create a new line whenever there is more than 123 charactes in the line 
+  			   ebuff[j][l2] = '\0';
+ 			   break;
+			}
+			ebuff[j][l2] = rbuff[l];  //copies rbuff into ebuff 
 
-			ebuff[j][l2] = rbuff[l]; 
 			l++; 
-		        l2++;
+		    l2++;
 		}
 		l2 = 0;
 	}
-	
-	printf("%d", j);
-	getchar();
-
 	int i_mode = 0;
 	int pos = 2; 
 
 	free_move();
+	printf("Press enter to continue: ");
+	i_mode = cget();
 	
 	POS(pos, 1);
 	int ex = 1;
@@ -232,21 +233,19 @@ void edit_file(int fd){
 		CLEAR();
 		POS(pos, 1);
 		HIDE_CURSOR();
-		for(int z = 0; z <= j; z++){
-			printf("%s", ebuff[z]); // Prints file contents
+		if(row < 0) row = 0; 
+		int f_row = row + 2;
+		int f_clm = clm + 1;
+		int dif = f_row - 29;
+		if(dif <= 0) dif = 0;
+		file_des(f_row, f_clm, ebuff[row][clm]);
+
+		for(int z = dif; z < 28 + dif; z++){ //Scrolling logic 
+		    printf("%s", ebuff[z]); // Prints file contents
 			POS(pos + ex, 1);
 			ex++;
 		}
 		ex = 1;
-		if(row < 0) row = 0; 
-		int f_row = row + 2;
-		int f_clm = clm + 1;
-		if(clm == 124){
-			row++; 
-			clm = 0;
-		}
-		file_des(f_row, f_clm, ebuff[row][clm]);
-
 		
 		POS(f_row, f_clm);
 		SHOW_CURSOR();
@@ -255,47 +254,81 @@ void edit_file(int fd){
 		if(i_mode == 27){
 			getchar();
 			switch(i_mode = getchar()){ //Cursor movement
-			case 'A': row = (row + 2) > 2 ? row - 1: row - 0; break;
-           	case 'B': row = (row + 2) < j ? row + 1: row + 0; break; 
-           	case 'C': clm = (clm + 1) < 123 ? clm  + 1 : clm + 0; break;
-           	case 'D': clm = (clm + 1) > 1 ? clm - 1: clm - 0; break;
+			case 'A': row = (row + 2) > 2 ? row - 1: row - 0; break; //UP
+           	case 'B': row = (row + 2) < j ? row + 1: row + 0; break;  //DOWN
+           	case 'C':
+           	 if((clm + 1) < strlen(ebuff[row])) clm = clm + 1;
+           	 else{
+           	 	row++;
+           	 	clm = 0;
+           	 } 
+           	 break; //RIGHT
+           	case 'D': 
+           		if((clm + 1) > 1) clm--; 
+           		else {
+           			row--;
+           			clm = strlen(ebuff[row]) - 1;
+           		}
+           		break; //LEFT
 			}
 			continue;
 		}
 
 		if(i_mode == CTRL_KEY('N')) break;
 
-		if(i_mode == 127 || i_mode == '\b'){
+		if(i_mode == 127 || i_mode == '\b'){ //checks for backspace, moving back one and replaceing the current character with a blank space. If it is it at end of row, then it i will move up to the previous row 
+				
 				if((clm - 1) == -1){
+					
 					ebuff[row][clm] = ' ';
 					if(row == 0){
 						continue; 
 					}
+
 					row--;
-					clm = 123;
+					clm = 122; // sends you to end of previous row if you are at beginning of current row 
+				
 				}
+				
 				else {
+					
 					ebuff[row][clm] = ' ';
 					clm--;
+				
 				}
+				
 				continue;
+			
 			} 
 			
-		else ebuff[row][clm] = i_mode;
-			if(ebuff[row][clm] == 10 || ebuff[row][clm] == '\n'){
-				row++;
-				if(row > j) j++;
-				clm = 0;
-			}
+		else if(i_mode == 10 || i_mode == '\n'){
+			row++;
+			if(row > j) j++;
+			clm = 0;
+		}
+
+		else {
 			
-			else clm++;
+			ebuff[row][clm] = i_mode; 
+			if((clm + 1) < 123) clm++; //checks if u are at end of row, goes down a row if yo
+           	
+           	else{
+           	 	
+           	 	row++;
+           	 	clm = 0;
+           	
+           	}
+           	
+   
+		}
 	}
 	r_move();
 	lseek(fd, 0, SEEK_SET);
 	ftruncate(fd, 0);
 	for (int y = 0; y < 1000; y++) {
-   		if (ebuff[y][0] == '\0')
+   		if (strlen(ebuff[y]) == 0){
         	break;              // no more lines
+   		}
    		int w2 = write(fd, ebuff[y], strlen(ebuff[y]));
     	if (w2 == -1) {
         	printf("Error %d: %s\n", errno, strerror(errno));
@@ -340,4 +373,3 @@ void rename_file(char name[]){
 	unlink(name);
 	CLEAR();
 }
-
