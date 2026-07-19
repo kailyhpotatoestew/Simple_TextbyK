@@ -1,0 +1,1 @@
+/usr/bin/cc -O3 -DNDEBUG -Wl,--dependency-file=CMakeFiles/simple_text.dir/link.d CMakeFiles/simple_text.dir/main.c.o -o simple_text

@@ -1,0 +1,3 @@
+/run/media/genu/AP-CSA/Simple_TextbyK/build/CMakeFiles/simple_text.dir
+/run/media/genu/AP-CSA/Simple_TextbyK/build/CMakeFiles/edit_cache.dir
+/run/media/genu/AP-CSA/Simple_TextbyK/build/CMakeFiles/rebuild_cache.dir
